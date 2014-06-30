@@ -1,0 +1,77 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          iptables
+# Required-Start:    $local_fs $remote_fs $network $syslog
+# Required-Stop:     $local_fs $remote_fs $network $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Load iptables rules
+# Description:       Load iptables rules from configuration
+### END INIT INFO
+#
+# Author:       Sebastian Gerhardt <bt@bittracker.org>
+#
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON=/sbin/iptables
+LOADER=/sbin/iptables-restore
+DEFAULT_CONF=/etc/default/iptables
+USR_CONF=/etc/iptables.conf
+
+test -x $DAEMON || exit 0
+
+. /lib/lsb/init-functions
+
+generate_config() {
+   echo  "*filter" > /tmp/.firewall
+   if [ -f $DEFAULT_CONF ]; then
+       cat $DEFAULT_CONF >> /tmp/.firewall
+   fi
+   if [ -f $USR_CONF ]; then
+       cat $USR_CONF >> /tmp/.firewall 
+   fi
+   echo "COMMIT" >> /tmp/.firewall
+}
+
+case "$1" in
+  start)
+        log_daemon_msg "Loading iptables rule set" "iptables"
+        generate_config
+        $LOADER < /tmp/.firewall
+        log_end_msg $?
+  ;;
+  stop)
+        log_daemon_msg "Flushing iptables rule set" "iptables"
+        if [ -f /tmp/.firewall ]; then
+            rm /tmp/.firewall
+        fi
+        touch /tmp/.firewall
+        $LOADER < /tmp/.firewall
+		$DAEMON -P INPUT ACCEPT
+		$DAEMON -P OUTPUT ACCEPT
+		$DAEMON -P FORWARD ACCEPT
+        log_end_msg $?
+  ;;
+  reload)
+        log_daemon_msg "reloading iptables rule set" "iptables"
+        $LOADER < /tmp/.firewall
+        log_end_msg $?
+  ;;
+  status)
+        echo Your active Firewall rules:
+	echo =============================
+        $DAEMON -L
+	echo 
+  ;;
+  restart|force-reload)
+        $0 stop
+        $0 start
+        exit $?
+  ;;
+  *)
+        echo "Usage: $0 {start|stop|restart|reload|force-reload|status}"
+        exit 1
+  ;;
+esac
+
+exit 0

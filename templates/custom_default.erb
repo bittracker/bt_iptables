@@ -1,0 +1,16 @@
+# This file will be maintained by a Puppet instance changes on this file 
+# will be overwritten if you wish add your own iptables rules use 
+# /etc/iptables.conf - thx your Administrator 
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+-A INPUT -m state ! --state NEW -j DROP
+-A INPUT -i lo -j ACCEPT
+-A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 22 --syn -j ACCEPT
+
+# Comment: <%= description %>
+<% @rules.each do |rule| -%>
+<%= rule %>
+<% end -%>
